@@ -2,7 +2,12 @@
 # original's constraint category (tc-like.py)
 progress 5 "activation"
 step activation-get
-python3 -I $S/hact_patch.py install/work/mobileactivationd.orig install/work/mobileactivationd
+# another build than 23G90 (iOS 27): the getter's offset and bytes from the manifest's dscPatches.hact
+if [ -n "{HACT}" ]; then
+	python3 -I $A/phone/patch-at.py install/work/mobileactivationd.orig install/work/mobileactivationd {HACT}
+else
+	python3 -I $S/hact_patch.py install/work/mobileactivationd.orig install/work/mobileactivationd
+fi
 h=$(python3 -I $S/reattest.py install/work/mobileactivationd.orig install/work/mobileactivationd | tee /dev/stderr \
 	| grep -E '^[0-9a-f]{40} [0-9a-f]{40}( |$)' | head -1)
 [ -n "$h" ] || { echo "reattest.py printed no CDHashes"; exit 1; }

@@ -57,7 +57,7 @@ final class Setup26Screen {
     private LinearLayout gpuButtons, files, steps;
     private View errorButtons;
     private ProgressBar totalBar;
-    private CheckBox alsoWatch, alsoIos26;
+    private CheckBox alsoWatch, alsoIos26, useIos27;
     private TextView primary26, primaryWatch, cancel;
     private final Map<String, TextView[]> fileRows = new LinkedHashMap<>();
     private final Map<String, ProgressBar> fileBars = new LinkedHashMap<>();
@@ -120,6 +120,9 @@ final class Setup26Screen {
                 + "10 GB from Apple and several hours of work, watchOS about 5 GB and about an hour, and their shared part "
                 + "1 GB once. Keep the phone on its charger and on Wi-Fi.", GRAY);
         alsoWatch = check(s26.body, "Set up watchOS in the same run");
+        // iOS 27.0.1 (experimental): the same steps with iOS 27's files (os.ios27 over os.ios26 in the manifest)
+        useIos27 = check(s26.body, "iOS 27.0.1 instead of 26.6.2 (experimental, about 12 GB from Apple)");
+        useIos27.setChecked(PhoneSetup26.ios27(a));
         sw.paragraph("watchOS 27.2 for an Apple Watch Series 9. It uses the same cloudOS files as iOS 26 (about 1 GB, downloaded "
                 + "once) and the same GPU check.", GRAY);
         alsoIos26 = check(sw.body, "Set up iOS 26 in the same run");
@@ -200,6 +203,9 @@ final class Setup26Screen {
             boolean withOther = (ios ? alsoWatch : alsoIos26).isChecked() && !PhoneSetup26.installed(a, other)
                     || PhoneSetup26.pending(a, other);
             PhoneSetup26.setWants(a, ios || withOther && !ios, !ios || withOther && ios);
+            if (ios || withOther) {
+                PhoneSetup26.setIos27(a, useIos27.isChecked());
+            }
         }
         // (the helper VM takes memory too: say so when little is free, K5)
         LowMemory.askBeforeStart(a, "the setup", Helper.needBytes(Helper.ramMiB(a, Helper.FLOOR_WORK_IN_RAM)),
@@ -376,6 +382,10 @@ final class Setup26Screen {
         CheckBox also = watch ? alsoIos26 : alsoWatch;
         also.setVisibility(!PhoneSetup26.installed(a, watch ? PhoneSetup26.IOS26 : PhoneSetup26.WATCH) && !installed && !s.running
                 && !pending ? View.VISIBLE : View.GONE);
+        if (!watch) {
+            // which build: only for a new run (a begun or finished one keeps what it was set up with)
+            useIos27.setVisibility(!installed && !s.running && !pending ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void update() {

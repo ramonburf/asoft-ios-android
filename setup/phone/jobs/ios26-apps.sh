@@ -7,7 +7,12 @@ step apps-get
 progress 40 "the dyld cache patches"
 pb=$(python3 -I $S/dsc-patch.py dsc {POSTERBOARD} dscpatch-pb); echo "$pb"
 lp=$(python3 -I $S/dsc-patch.py dscpatch-pb {LOCKLONGPRESS} dscpatch-lp); echo "$lp"
-edge=$(python3 -I $S/edge-patch.py dsc dscpatch-edge); echo "$edge"
+# another build than 23G90 (iOS 27): its addresses from the manifest's dscPatches.edge (phone/edge-patch-at.py)
+if [ -n "{EDGE}" ]; then
+	edge=$(python3 -I $A/phone/edge-patch-at.py dsc dscpatch-edge {EDGE}); echo "$edge"
+else
+	edge=$(python3 -I $S/edge-patch.py dsc dscpatch-edge); echo "$edge"
+fi
 aod=$(python3 -I $S/dsc-patch.py dsc {AOD} dscpatch-aod); echo "$aod"
 h1=$(echo "$lp" | new_hash) h2=$(echo "$edge" | edge_hash) h3=$(echo "$aod" | new_hash)
 for h in "$h1" "$h2" "$h3"; do

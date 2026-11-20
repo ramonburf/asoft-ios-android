@@ -68,10 +68,27 @@ final class PhoneSetup {
     /** The bundled list (the PC installers' asoft-setup.json). */
     static JSONObject manifest(Context c) throws IOException {
         try (InputStream in = c.getAssets().open("setup/asoft-setup.json")) {
-            return new JSONObject(new String(Io.readAll(in), StandardCharsets.UTF_8));
+            JSONObject m = new JSONObject(new String(Io.readAll(in), StandardCharsets.UTF_8));
+            JSONObject os = m.optJSONObject("os");
+            // iOS 27 (experimental): os.ios27 holds only what differs from os.ios26 (its IPSW, image names, patch
+            // addresses), laid over it, so every iOS 26 step runs as it is with the other build's files
+            if (os != null && os.has("ios27") && os.has("ios26") && PhoneSetup26.ios27(c)) {
+                os.put("ios26", overlay(os.getJSONObject("ios26"), os.getJSONObject("ios27")));
+            }
+            return m;
         } catch (JSONException e) {
             throw new IOException("bad asoft-setup.json: " + e.getMessage());
         }
+    }
+
+    /** @base with @over's keys: objects merged key by key, anything else (arrays too) replaced. */
+    static JSONObject overlay(JSONObject base, JSONObject over) throws JSONException {
+        for (java.util.Iterator<String> it = over.keys(); it.hasNext(); ) {
+            String k = it.next();
+            Object o = over.get(k), b = base.opt(k);
+            base.put(k, o instanceof JSONObject && b instanceof JSONObject ? overlay((JSONObject) b, (JSONObject) o) : o);
+        }
+        return base;
     }
 
     /**

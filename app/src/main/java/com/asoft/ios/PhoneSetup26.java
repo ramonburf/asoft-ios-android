@@ -51,7 +51,7 @@ final class PhoneSetup26 {
             {"build", "Ramdisk, device trees and the GPU driver (helper VM)"},
     };
     static final String[][] IOS26_STEPS = {
-            {"fetch", "iOS 26.6.2 from Apple, about 10.2 GB"},
+            {"fetch", "iOS from Apple (26.6.2 about 10.2 GB, 27.0.1 about 11.7 GB)"},
             {"decrypt", "Decrypt the iOS images"},
             {"rootfs", "Copy iOS onto its disk (helper VM, about 30 min)"},
             {"partition", "Partition the disk, prefs and keybag (helper VM)"},
@@ -113,6 +113,15 @@ final class PhoneSetup26 {
     /** What the user asked to install (Set up's choice, kept for a resume). */
     static boolean wants(Context c, String group) {
         return c.getSharedPreferences("setup", Context.MODE_PRIVATE).getBoolean("a26-" + group, false);
+    }
+
+    /** iOS 27.0.1 in place of iOS 26.6.2 (experimental; the manifest's os.ios27 over os.ios26, PhoneSetup.manifest). */
+    static boolean ios27(Context c) {
+        return c.getSharedPreferences("setup", Context.MODE_PRIVATE).getBoolean("a26-ios27", false);
+    }
+
+    static void setIos27(Context c, boolean on) {
+        c.getSharedPreferences("setup", Context.MODE_PRIVATE).edit().putBoolean("a26-ios27", on).commit();
     }
 
     static void setWants(Context c, boolean ios26, boolean watch) {
@@ -679,7 +688,7 @@ final class PhoneSetup26 {
         if (watch) {
             assetDir(c, "setup/scripts/watchos", s, null, files);
         }
-        for (String n : new String[] {"locale.py"}) {
+        for (String n : new String[] {"locale.py", "patch-at.py", "edge-patch-at.py"}) {
             files.put("phone/" + n, asset(c, "setup/phone/" + n));
         }
         for (Map.Entry<String, Object> e : j.in.entrySet()) {
@@ -900,6 +909,7 @@ final class PhoneSetup26 {
         currentStep = "activation";
         overlay(c, "root26g.qcow2", "root26-activation.qcow2");
         Job j = new Job("ios26-activation", IOS26);
+        j.vars.put("HACT", optPatchArgs(m, "hact"));
         j.disk("root26-activation.qcow2", "rw");
         j.file("root26.tc");
         j.out.add("root26-activation.tc");
@@ -919,6 +929,12 @@ final class PhoneSetup26 {
         }
     }
 
+    /** A dscPatches entry the iOS 26 build does without (its scripts carry its addresses): "" when absent. */
+    private static String optPatchArgs(JSONObject m, String key) throws IOException {
+        JSONObject d = group(m, IOS26).optJSONObject("dscPatches");
+        return d != null && d.has(key) ? patchArgs(m, key) : "";
+    }
+
     private static void iosApps(Context c, JSONObject m, int cpus, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
         currentStep = "apps";
         overlay(c, "root26-activation.qcow2", "root26-apps.qcow2");
@@ -931,6 +947,7 @@ final class PhoneSetup26 {
         j.vars.put("POSTERBOARD", patchArgs(m, "posterBoard"));
         j.vars.put("LOCKLONGPRESS", patchArgs(m, "lockLongPress"));
         j.vars.put("AOD", patchArgs(m, "aod"));
+        j.vars.put("EDGE", optPatchArgs(m, "edge"));
         // SystemAppMigrator stays out of the disk (root26-staged.py); debug: files/setup/a26/phone/keep-system-app-migrator
         boolean keepSam = SystemAppMigrator.keep((c.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0,
                 new File(work(c), "phone/" + SystemAppMigrator.KEEP_FLAG).isFile());
