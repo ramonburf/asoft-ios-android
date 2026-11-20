@@ -955,6 +955,108 @@
         "TOP": "root.qcow2"
       },
       "note": "PC: the Linux steps run in WSL (no helper mode). The phone runs rootfs, patches, trustcache and activation in the helper VM (mk-rootw.sh takes a block device as OUT since phone-steps), decrypt, kernel and devicetree in Java (Unpack) and gpu-driver from the shared folder"
+    },
+    "ios27": {
+      "title": "iOS 27.0.1 (iPhone17,3) on the cloudOS 26.4b research kernel (experimental)",
+      "build": "24A446",
+      "sources": {
+        "iphone": {
+          "url": "https://updates.cdn-apple.com/2026FallFCS/38dca0ee-bb5d-4132-ad13-62d57bcd6d32/iPhone17,3_27.0.1_24A446_Restore.ipsw",
+          "bytes": 12343857610,
+          "members": [
+            {
+              "name": "043-69462-662.dmg.aea",
+              "role": "OS",
+              "bytes": 8858370048,
+              "method": 0,
+              "crc32": "21b221df"
+            },
+            {
+              "name": "043-70113-711.dmg.aea",
+              "role": "SystemOS",
+              "bytes": 2348810240,
+              "method": 0,
+              "crc32": "78747dcb"
+            },
+            {
+              "name": "043-69297-793.dmg",
+              "role": "AppOS",
+              "bytes": 16777216,
+              "method": 8,
+              "zipBytes": 8955771,
+              "crc32": "fe13ee1d"
+            },
+            {
+              "name": "Firmware/043-69462-662.dmg.aea.trustcache",
+              "bytes": 91441,
+              "method": 8,
+              "zipBytes": 82748,
+              "crc32": "f0c082b1"
+            },
+            {
+              "name": "Firmware/043-70113-711.dmg.aea.trustcache",
+              "bytes": 3167,
+              "method": 8,
+              "zipBytes": 2898,
+              "crc32": "a85ad11c"
+            },
+            {
+              "name": "Firmware/043-69297-793.dmg.trustcache",
+              "bytes": 863,
+              "method": 8,
+              "zipBytes": 833,
+              "crc32": "c6675b15"
+            }
+          ]
+        }
+      },
+      "vars": {
+        "OS": "043-69462-662.dmg",
+        "SYSOS": "043-70113-711.dmg",
+        "APPOS": "043-69297-793.dmg",
+        "DSC": "$C/dyld_shared_cache_arm64e.36 $C/dyld_shared_cache_arm64e.01 $C/dyld_shared_cache_arm64e.11",
+        "N": "dyld_shared_cache_arm64e.36"
+      },
+      "dscPatches": {
+        "posterBoard": [
+          "0x220f60008",
+          "f6179f1a80060034",
+          "3600805234000014"
+        ],
+        "collections": [
+          "0x220f8a768",
+          "a0000054",
+          "05000014"
+        ],
+        "aod": [
+          "0x1afa22914",
+          "20008052",
+          "00008052"
+        ],
+        "lockLongPress": [
+          "0x224cea9d8",
+          "7f2303d5f657bda9",
+          "20008052c0035fd6"
+        ],
+        "edge": [
+          "0x186890940",
+          "0x184e4ba48",
+          "0x184e4bda8",
+          "0x18814ff90",
+          "0x18814ff80"
+        ],
+        "files": [
+          "dyld_shared_cache_arm64e.36",
+          "dyld_shared_cache_arm64e.01",
+          "dyld_shared_cache_arm64e.11"
+        ],
+        "hact": [
+          "0x2ec368",
+          "00504039c0035fd6",
+          "200080d2c0035fd6"
+        ]
+      },
+      "note": "Experimental. Only what differs from os.ios26: the app lays this over it when Set up's iOS 27.0.1 box is ticked (PhoneSetup.manifest). The dyld cache addresses were found by matching each 23G90 patch site's function in 24A446 (same instructions; PosterBoard and SpringBoard share .36 as they share .42 in 23G90)."
     }
   }
 }
