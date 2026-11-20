@@ -306,7 +306,7 @@ final class PhoneSetup26 {
             case "ios26:decrypt": iosDecrypt(c, m, p, cancelled); break;
             case "ios26:rootfs": iosRootfs(c, m, cpus, p, cancelled); break;
             case "ios26:partition": iosPartition(c, m, cpus, p, cancelled); break;
-            case "ios26:firstboot": iosFirstBoot(c, p, cancelled); break;
+            case "ios26:firstboot": iosMaxSlide(c, m, cpus, p, cancelled); iosFirstBoot(c, p, cancelled); break;
             case "ios26:persona": iosPersona(c, m, cpus, p, cancelled); break;
             case "ios26:activation": iosActivation(c, m, cpus, p, cancelled); break;
             case "ios26:apps": iosApps(c, m, cpus, p, cancelled); break;
@@ -1167,6 +1167,29 @@ final class PhoneSetup26 {
         } catch (IOException e) {
             return null;
         }
+    }
+
+    /**
+     * Another build than 23G90 (iOS 27): its dyld cache's header lets dyld slide it further than the cloudOS 26.4
+     * kernel's 6 GB shared region has room for (the cache fills 5.96 GB of it), so launchd's dyld failed to map it
+     * ("Library not loaded: /usr/lib/libSystem.B.dylib"). The manifest's dscPatches.maxSlide lowers the header's
+     * maxSlide to what fits, on root26g.qcow2 before the first boot, and its new CDHash goes into root26.tc. Once
+     * (its own mark), so a resumed first boot does not patch twice.
+     */
+    private static void iosMaxSlide(Context c, JSONObject m, int cpus, PhoneSetup.Progress p, BooleanSupplier cancelled)
+            throws IOException {
+        String args = optPatchArgs(m, "maxSlide");
+        if (args.isEmpty() || done(c, IOS26, "maxslide")) {
+            return;
+        }
+        currentStep = "maxslide";
+        Job j = new Job("ios26-maxslide", IOS26);
+        j.disk("root26g.qcow2", "rw");
+        j.file("root26.tc");
+        j.out.add("root26.tc");
+        j.vars.put("MAXSLIDE", args);
+        runJob(c, m, j, cpus, p, cancelled);
+        setDone(c, IOS26, "maxslide");
     }
 
     private static void iosFirstBoot(Context c, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
