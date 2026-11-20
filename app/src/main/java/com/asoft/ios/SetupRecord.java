@@ -149,10 +149,11 @@ final class SetupRecord {
         File ext = c.getExternalFilesDir(null);
         if (PhoneSetup26.ios27(c) && bootStep(step) && ext != null) {
             try {
-                java.nio.file.Files.copy(new File(Guest.runDir(c), "serial.txt").toPath(),
-                        new File(ext, "ios27-serial-" + (id != null ? id : String.valueOf(now)) + ".txt").toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            } catch (java.io.IOException x) {
+                // (read and written, not Files.copy: a copy keeps serial.txt's 0600, which adb cannot read)
+                File out = new File(ext, "ios27-serial-" + (id != null ? id : String.valueOf(now)) + ".txt");
+                java.nio.file.Files.write(out.toPath(), java.nio.file.Files.readAllBytes(new File(Guest.runDir(c), "serial.txt").toPath()));
+                android.system.Os.chmod(out.getPath(), 0644);
+            } catch (java.io.IOException | android.system.ErrnoException x) {
                 AppLog.note(c, "setup record: no copy of serial.txt: " + x.getMessage());
             }
         }

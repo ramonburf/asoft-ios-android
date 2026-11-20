@@ -962,6 +962,17 @@ final class CrashReport {
         if (ext != null) {
             try {
                 java.nio.file.Files.write(new File(ext, "last-shared-log.txt").toPath(), text.getBytes(StandardCharsets.UTF_8));
+                // iOS 27 bring-up: the boot consoles SetupRecord kept, readable by adb (they were written 0600)
+                File[] kept = ext.listFiles();
+                for (File f : kept == null ? new File[0] : kept) {
+                    if (f.getName().startsWith("ios27-serial-")) {
+                        try {
+                            android.system.Os.chmod(f.getPath(), 0644);
+                        } catch (android.system.ErrnoException x) {
+                            AppLog.note(a, "share: chmod " + f.getName() + ": " + x.getMessage());
+                        }
+                    }
+                }
             } catch (IOException e) {
                 AppLog.note(a, "share: no copy in " + ext + ": " + e.getMessage());
             }

@@ -311,7 +311,7 @@ final class PhoneSetup26 {
             case "ios26:activation": iosActivation(c, m, cpus, p, cancelled); break;
             case "ios26:apps": iosApps(c, m, cpus, p, cancelled); break;
             case "ios26:gpu": iosGpu(c, m, cpus, p, cancelled); break;
-            case "ios26:wallpaper": iosWallpaper(c, p, cancelled); break;
+            case "ios26:wallpaper": iosWallpaper(c, m, cpus, p, cancelled); break;
             case "ios26:locale": iosLocale(c, m, cpus, p, cancelled); break;
             case "ios26:pack": iosPack(c, p); break;
             case "watchos:fetch": osFetch(c, m, WATCH, "watchos/ipsw", p, cancelled, current); break;
@@ -688,7 +688,7 @@ final class PhoneSetup26 {
         if (watch) {
             assetDir(c, "setup/scripts/watchos", s, null, files);
         }
-        for (String n : new String[] {"locale.py", "patch-at.py", "edge-patch-at.py", "dsc-which.py"}) {
+        for (String n : new String[] {"locale.py", "patch-at.py", "edge-patch-at.py", "dsc-which.py", "kc-ios27.py"}) {
             files.put("phone/" + n, asset(c, "setup/phone/" + n));
         }
         for (Map.Entry<String, Object> e : j.in.entrySet()) {
@@ -1220,6 +1220,26 @@ final class PhoneSetup26 {
         return String.join(";", e);
     }
 
+    /**
+     * The kernel of the boots after the first: fw/bootkc, and for iOS 27 fw/bootkc27, that kernel with the iOS 27
+     * userland's patches (kc-ios27.py, made once here): on the plain one containermanagerd's upcall failed the exec
+     * of every daemon it answers for (backboardd among them: no picture) and IOMobileFramebuffer refused 27.x's swaps.
+     */
+    private static String kernel27(Context c, JSONObject m, int cpus, PhoneSetup.Progress p, BooleanSupplier cancelled)
+            throws IOException {
+        if (!ios27(c)) {
+            return "fw/bootkc";
+        }
+        if (!in(c, "fw/bootkc27").isFile()) {
+            currentStep = "kernel27";
+            Job j = new Job("ios27-kernel", IOS26);
+            j.file("fw/bootkc");
+            j.out.add("fw/bootkc27");
+            runJob(c, m, j, cpus, p, cancelled);
+        }
+        return "fw/bootkc27";
+    }
+
     private static void iosFirstBoot(Context c, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
         // 4.5: usermanagerd writes the persona manifest and the user session (persona.kb, usersession.kb); the
         // disk has no libMobileGestalt patch yet (the apps step's), so the plain tree and kernel, as the PC's -NoAod
@@ -1274,7 +1294,7 @@ final class PhoneSetup26 {
         return n;
     }
 
-    private static void iosWallpaper(Context c, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
+    private static void iosWallpaper(Context c, JSONObject m, int cpus, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
         // 5.3.6: root.qcow2 on the top layer, booted once: DataMigration and then PosterBoard's first run write
         // into it (a disk stopped before DataMigration ends runs it again at every start)
         // debug: files/setup/a26/phone/keep-root boots the last run's root.qcow2 again (what its DataMigration
@@ -1285,7 +1305,8 @@ final class PhoneSetup26 {
             overlay(c, "root26-gpu.qcow2", "root.qcow2");
         }
         java.nio.file.Files.copy(in(c, "root26-gpu.tc").toPath(), in(c, "root.tc").toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        startCool(c, boot26(c, "root.qcow2", "fw/bootkc", "dtree-phone-aod", "root.tc"), p, "ios26:wallpaper", cancelled);
+        String kc = kernel27(c, m, cpus, p, cancelled);
+        startCool(c, boot26(c, "root.qcow2", kc, "dtree-phone-aod", "root.tc"), p, "ios26:wallpaper", cancelled);
         GuestConsole con = new GuestConsole(Guest.consoleSocket(c));
         long t0 = System.currentTimeMillis();
         try {
@@ -1521,7 +1542,7 @@ final class PhoneSetup26 {
         pack(c, "ios26:pack", "root.qcow2", new File(d, Guest.AOD26_BASE), p);
         p.step("ios26:pack", 95, "Setting iOS 26 up in the app");
         place(in(c, "root.tc"), new File(d, Guest.AOD26_TC));
-        place(in(c, "fw/bootkc"), new File(d, "bootkc"));
+        place(in(c, ios27(c) && in(c, "fw/bootkc27").isFile() ? "fw/bootkc27" : "fw/bootkc"), new File(d, "bootkc"));
         place(in(c, "fw/sptm"), new File(d, "sptm"));
         place(in(c, "fw/txm"), new File(d, "txm"));
         place(in(c, "rd-shell.hfs"), new File(d, "rd-shell.hfs"));
