@@ -2006,6 +2006,33 @@ final class Guest {
         }
     }
 
+    /**
+     * iOS 27 (experimental): more QEMU arguments from ios27-qemu-args.txt in the app's external folder, whitespace
+     * separated (QEMU's gdbstub for a bring-up, "-gdb tcp:127.0.0.1:1234", reached with adb forward). None when iOS 27
+     * is not chosen or the file is not there.
+     */
+    static List<String> qemuArgs27(Context c) {
+        List<String> a = new ArrayList<>();
+        File ext = c.getExternalFilesDir(null);
+        if (!PhoneSetup26.ios27(c) || ext == null) {
+            return a;
+        }
+        try {
+            for (String t : new String(java.nio.file.Files.readAllBytes(new File(ext, "ios27-qemu-args.txt").toPath()),
+                    java.nio.charset.StandardCharsets.UTF_8).trim().split("[ \t\r\n]+")) {
+                if (!t.isEmpty()) {
+                    a.add(t);
+                }
+            }
+        } catch (IOException ignored) {
+            // no file
+        }
+        if (!a.isEmpty()) {
+            AppLog.note(c, "iOS 27 QEMU arguments from ios27-qemu-args.txt: " + String.join(" ", a));
+        }
+        return a;
+    }
+
     private static Map<String, String> overrides26(Context c, List<String> args) {
         Map<String, String> m = new java.util.LinkedHashMap<>();
         if ((c.getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) == 0) {
@@ -2242,6 +2269,9 @@ final class Guest {
                 "-device", "virtio-blk-pci,drive=root" + ("on".equals(ov.get("disk-iothread")) ? ",iothread=disk" : ""),
                 "-qmp", "unix:" + qmpPath(c) + ",server,nowait",
                 "-device", "qemu-xhci,id=xhci,conditional-intr-mapping=on,nonremovable=2"));
+        if (!watch) {
+            cmd.addAll(qemuArgs27(c));
+        }
         // iOS 26 without a USB keyboard, so that iOS shows its own (kbd26); a save made with one loads with it
         boolean kbd = watch || sb != null || resumed && !savedNoKbdFile(c, loadTag).isFile();
         kbd26 = kbd;

@@ -1059,6 +1059,13 @@
           "0x1800000f0",
           "0000002000000000",
           "0080af0200000000"
+        ],
+        "preboot": [
+          [
+            "0x237ef3298",
+            "20010054",
+            "1f2003d5"
+          ]
         ]
       },
       "note": "Experimental. Only what differs from os.ios26: the app lays this over it when Set up's iOS 27.0.1 box is ticked (PhoneSetup.manifest). The dyld cache addresses were found by matching each 23G90 patch site's function in 24A446 (same instructions; PosterBoard and SpringBoard share .36 as they share .42 in 23G90)."

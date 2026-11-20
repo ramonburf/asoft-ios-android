@@ -688,7 +688,7 @@ final class PhoneSetup26 {
         if (watch) {
             assetDir(c, "setup/scripts/watchos", s, null, files);
         }
-        for (String n : new String[] {"locale.py", "patch-at.py", "edge-patch-at.py"}) {
+        for (String n : new String[] {"locale.py", "patch-at.py", "edge-patch-at.py", "dsc-which.py"}) {
             files.put("phone/" + n, asset(c, "setup/phone/" + n));
         }
         for (Map.Entry<String, Object> e : j.in.entrySet()) {
@@ -1178,8 +1178,10 @@ final class PhoneSetup26 {
      */
     private static void iosMaxSlide(Context c, JSONObject m, int cpus, PhoneSetup.Progress p, BooleanSupplier cancelled)
             throws IOException {
-        String args = optPatchArgs(m, "maxSlide");
-        if (args.isEmpty() || done(c, IOS26, "maxslide")) {
+        String args = preboot(m);
+        // (the mark names the value: another maxSlide in the manifest patches again, from what the disk has)
+        String mark = "maxslide-" + Integer.toHexString(args.hashCode());
+        if (args.isEmpty() || done(c, IOS26, mark)) {
             return;
         }
         currentStep = "maxslide";
@@ -1187,9 +1189,35 @@ final class PhoneSetup26 {
         j.disk("root26g.qcow2", "rw");
         j.file("root26.tc");
         j.out.add("root26.tc");
-        j.vars.put("MAXSLIDE", args);
+        j.vars.put("PREBOOT", args);
         runJob(c, m, j, cpus, p, cancelled);
-        setDone(c, IOS26, "maxslide");
+        setDone(c, IOS26, mark);
+    }
+
+    /**
+     * The dyld cache patches before the first boot, "VA OLD NEW" entries joined by ';' (ios26-maxslide.sh): the
+     * manifest's dscPatches.maxSlide (its OLD "-", whatever the header holds) and its dscPatches.preboot (a list of
+     * [VA, OLD, NEW]); "" when it has neither (23G90).
+     */
+    private static String preboot(JSONObject m) throws IOException {
+        List<String> e = new ArrayList<>();
+        JSONObject d = group(m, IOS26).optJSONObject("dscPatches");
+        if (d == null) {
+            return "";
+        }
+        JSONArray ms = d.optJSONArray("maxSlide");
+        if (ms != null && ms.length() == 3) {
+            e.add(ms.optString(0) + " - " + ms.optString(2));
+        }
+        JSONArray pre = d.optJSONArray("preboot");
+        for (int i = 0; pre != null && i < pre.length(); i++) {
+            JSONArray a = pre.optJSONArray(i);
+            if (a == null || a.length() != 3) {
+                throw new IOException("asoft-setup.json: ios26.dscPatches.preboot[" + i + "] is not [VA, OLD, NEW]");
+            }
+            e.add(a.optString(0) + " " + a.optString(1) + " " + a.optString(2));
+        }
+        return String.join(";", e);
     }
 
     private static void iosFirstBoot(Context c, PhoneSetup.Progress p, BooleanSupplier cancelled) throws IOException {
