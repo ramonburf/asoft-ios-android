@@ -3,6 +3,8 @@ progress 2 "copying iOS onto its disk"
 # mk-root26.sh's mount point; iOS 26.6.2 ends at 18 GB on it (S25 Ultra, 2026-11-08)
 copy_watch /tmp/mkroot26/root $((18 * 1048576)) "copying iOS onto its disk" &
 cw=$!
+# the build's images (mk-root26.sh's defaults are 23G90's, which another build has not)
+export OS=$A/os/{OS} SYSOS=$A/os/{SYSOS} APPOS=$A/iphone/{APPOS}
 step rootfs
 kill $cw 2> /dev/null || true
 progress 97 "its trust cache"

@@ -15,6 +15,11 @@ A=$ASOFT26 L=$ASOFT26_LINUX S=$ASOFT26/${ASOFT_S:-scripts} W=$ASOFT26/watchos
 export A L S W
 mkdir -p "$L"
 cd "$A"
+# apply-staged.sh and apply-apps.sh name 23G90's OS image outright: let a job's OS (another build, iOS 27) stand
+# in for it, as mk-root26.sh lets OS, SYSOS and APPOS do (for 23G90 the result is the same file)
+for f in "$S/apply-staged.sh" "$S/apply-apps.sh"; do
+	if [ -f "$f" ]; then sed -i 's|^OS=\$A/os/\(094-[0-9-]*\.dmg\)$|OS=${OS:-$A/os/\1}|' "$f"; fi
+done
 disk_tools() {
 	grep -q hfsplus /proc/filesystems || { echo "the helper VM's kernel has no hfsplus"; exit 1; }
 }

@@ -2,6 +2,8 @@
 # touch edge patch (.03), libMobileGestalt's Always On Display patch (.15)
 # SystemAppMigrator stays out of the disk (root26-staged.py, apply-staged.sh read this); 1 only for a debug build's flag file
 export ASOFT_KEEP_SYSTEMAPPMIGRATOR={KEEPSAM}
+# the build's OS image for apply-staged.sh and apply-apps.sh (the prelude lets it replace their 23G90 name)
+export OS=$A/os/{OS}
 progress 5 "the dyld cache"
 step apps-get
 progress 40 "the dyld cache patches"
