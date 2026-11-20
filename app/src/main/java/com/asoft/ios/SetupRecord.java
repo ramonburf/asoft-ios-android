@@ -144,6 +144,18 @@ final class SetupRecord {
         if (id != null) {
             AppLog.note(c, "setup record " + id + " (" + runs.size() + " failed helper runs)");
         }
+        // iOS 27 (experimental): the whole boot console where adb can read it (Android/data/<package>/files), one
+        // file a failure, for the bring-up; a release build's own files are not readable there
+        File ext = c.getExternalFilesDir(null);
+        if (PhoneSetup26.ios27(c) && bootStep(step) && ext != null) {
+            try {
+                java.nio.file.Files.copy(new File(Guest.runDir(c), "serial.txt").toPath(),
+                        new File(ext, "ios27-serial-" + (id != null ? id : String.valueOf(now)) + ".txt").toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.io.IOException x) {
+                AppLog.note(c, "setup record: no copy of serial.txt: " + x.getMessage());
+            }
+        }
         return id;
     }
 

@@ -957,6 +957,15 @@ final class CrashReport {
         if (a.isFinishing() || a.isDestroyed()) {
             return;
         }
+        // (a copy where adb can read it, Android/data/<package>/files: a release build's own files are not)
+        File ext = a.getExternalFilesDir(null);
+        if (ext != null) {
+            try {
+                java.nio.file.Files.write(new File(ext, "last-shared-log.txt").toPath(), text.getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                AppLog.note(a, "share: no copy in " + ext + ": " + e.getMessage());
+            }
+        }
         a.startActivity(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain")
                 .putExtra(Intent.EXTRA_SUBJECT, "ASoftware iOS: " + subject)
                 .putExtra(Intent.EXTRA_TEXT, text + END_MARK), "Share the log"));
